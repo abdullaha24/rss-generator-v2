@@ -6,6 +6,7 @@
 import { generateRSSFeed } from '../utils/rss-builder.js';
 import { scrapeEEAS, getEEASChannelInfo } from '../utils/eeas-scraper.js';
 import { scrapeNATO, getNATOChannelInfo } from '../utils/nato-scraper.js';
+import { scrapeConsiliumAdvanced, getConsiliumAdvancedChannelInfo } from '../utils/consilium-scraper-advanced.js';
 
 /**
  * Main API handler
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
         return await handleNotImplemented(req, res, 'European Court of Auditors');
       
       case 'consilium':
-        return await handleNotImplemented(req, res, 'EU Council Press Releases');
+        return await handleConsilium(req, res);
       
       case 'frontex':
         return await handleNotImplemented(req, res, 'Frontex News');
@@ -98,6 +99,28 @@ async function handleNATO(req, res) {
     
   } catch (error) {
     console.error('NATO feed error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Handle EU Council Press Releases feed (Advanced Scraper)
+ */
+async function handleConsilium(req, res) {
+  try {
+    console.log('Processing EU Council feed request with advanced scraper');
+    
+    const items = await scrapeConsiliumAdvanced();
+    const channelInfo = getConsiliumAdvancedChannelInfo();
+    const rssXml = generateRSSFeed(channelInfo, items);
+    
+    res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+    
+    return res.status(200).send(rssXml);
+    
+  } catch (error) {
+    console.error('EU Council advanced feed error:', error);
     throw error;
   }
 }
