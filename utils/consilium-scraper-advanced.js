@@ -5,7 +5,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import AdvancedScraper from './advanced-scraper.js';
+import AdvancedScraperFixed from './advanced-scraper-fixed.js';
 import { cache } from './http-client.js';
 import { cleanDescription, formatRSSDate } from './rss-builder.js';
 
@@ -26,7 +26,7 @@ async function scrapeConsiliumAdvanced() {
 
     console.log('Starting advanced EU Council scraping with browser automation...');
     
-    scraper = new AdvancedScraper();
+    scraper = new AdvancedScraperFixed();
     const initialized = await scraper.initBrowser();
     
     if (!initialized) {

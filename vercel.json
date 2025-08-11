@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/[feed].js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",

@@ -7,7 +7,8 @@
       "Bash(npm install:*)",
       "Bash(vercel:*)",
       "Bash(node:*)",
-      "WebFetch(domain:www.nato.int)"
+      "WebFetch(domain:www.nato.int)",
+      "WebFetch(domain:medium.com)"
     ],
     "deny": []
   }
