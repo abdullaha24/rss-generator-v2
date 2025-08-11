@@ -2,7 +2,8 @@
   "name": "eu-rss-generator",
   "version": "1.0.0",
   "description": "RSS feed generator for 9 European institutional websites",
-  "main": "api/feed.js",
+  "type": "module",
+  "main": "api/[feed].js",
   "scripts": {
     "dev": "vercel dev",
     "build": "echo 'No build step required for Vercel'",

@@ -3,8 +3,8 @@
  * Handles 9 European institutional website RSS feeds
  */
 
-const { generateRSSFeed } = require('../utils/rss-builder');
-const { scrapeEEAS, getEEASChannelInfo } = require('../utils/eeas-scraper');
+import { generateRSSFeed } from '../utils/rss-builder.js';
+import { scrapeEEAS, getEEASChannelInfo } from '../utils/eeas-scraper.js';
 
 /**
  * Main API handler

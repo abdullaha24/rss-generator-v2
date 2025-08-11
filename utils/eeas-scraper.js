@@ -3,9 +3,9 @@
  * Scrapes https://www.eeas.europa.eu/eeas/press-material_en
  */
 
-const cheerio = require('cheerio');
-const { fetchHTML, cache } = require('./http-client');
-const { resolveUrl, cleanDescription } = require('./rss-builder');
+import * as cheerio from 'cheerio';
+import { fetchHTML, cache } from './http-client.js';
+import { resolveUrl, cleanDescription } from './rss-builder.js';
 
 /**
  * Scrape EEAS press material listings
@@ -185,7 +185,7 @@ function getEEASChannelInfo() {
   };
 }
 
-module.exports = {
+export {
   scrapeEEAS,
   getEEASChannelInfo
 };

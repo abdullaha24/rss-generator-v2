@@ -173,7 +173,7 @@ class SimpleCache {
 // Global cache instance
 const cache = new SimpleCache();
 
-module.exports = {
+export {
   fetchWithRetry,
   fetchHTML,
   getBrowserHeaders,

@@ -113,7 +113,7 @@ function resolveUrl(url, baseUrl) {
   return baseUrl.replace(/\/$/, '') + '/' + url;
 }
 
-module.exports = {
+export {
   generateRSSFeed,
   generateRSSItem,
   formatRSSDate,
