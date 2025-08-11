@@ -237,12 +237,15 @@ class AdvancedScraperFixed {
   async navigateWithStealth(url, options = {}) {
     const {
       waitForSelector = null,
-      timeout = this.isVercel ? 45000 : 30000,
-      waitForNetworkIdle = true
+      timeout = this.isVercel ? 8000 : 30000, // 8s max for Vercel Hobby
+      waitForNetworkIdle = this.isVercel ? false : true // Skip network idle on Vercel
     } = options;
 
-    // Try multiple strategies for navigation
-    const strategies = [
+    // Optimized strategies for Vercel - prioritize speed
+    const strategies = this.isVercel ? [
+      { method: 'direct', waitUntil: 'domcontentloaded' }, // Fastest for Vercel
+      { method: 'direct', waitUntil: 'load' }
+    ] : [
       { method: 'direct', waitUntil: 'networkidle2' },
       { method: 'direct', waitUntil: 'domcontentloaded' },
       { method: 'with_referer', waitUntil: 'networkidle0' },
@@ -284,7 +287,7 @@ class AdvancedScraperFixed {
         // Navigate with strategy-specific settings
         const response = await this.page.goto(url, {
           waitUntil: waitForNetworkIdle ? strategy.waitUntil : 'domcontentloaded',
-          timeout: Math.min(timeout, 40000)
+          timeout: Math.min(timeout, this.isVercel ? 6000 : 40000) // 6s for Vercel navigation
         });
 
         if (!response) {
@@ -313,11 +316,12 @@ class AdvancedScraperFixed {
           }
         }
 
-        // Wait for specific selector if provided
+        // Wait for specific selector if provided - optimized for Vercel
         if (waitForSelector) {
           try {
+            const selectorTimeout = this.isVercel ? 2000 : 15000; // 2s for Vercel
             await this.page.waitForSelector(waitForSelector, { 
-              timeout: Math.min(timeout / 3, 15000),
+              timeout: selectorTimeout,
               visible: true 
             });
             console.log(`Found required selector: ${waitForSelector}`);
@@ -326,8 +330,10 @@ class AdvancedScraperFixed {
           }
         }
 
-        // Light scrolling simulation
-        await this.simulateScrolling();
+        // Skip scrolling on Vercel to save time
+        if (!this.isVercel) {
+          await this.simulateScrolling();
+        }
 
         return response;
 
@@ -336,8 +342,9 @@ class AdvancedScraperFixed {
         if (i === strategies.length - 1) {
           throw error;
         }
-        // Wait before trying next strategy
-        await this.randomDelay(2000, 3000);
+        // Shorter wait before trying next strategy on Vercel
+        const retryDelay = this.isVercel ? 500 : 2000;
+        await this.randomDelay(retryDelay, retryDelay + 500);
       }
     }
 
@@ -369,8 +376,8 @@ class AdvancedScraperFixed {
     try {
       console.log('Handling Cloudflare challenge...');
       
-      // Wait for challenge to complete (shorter timeout for serverless)
-      const challengeTimeout = this.isVercel ? 12000 : 18000;
+      // Optimized timeout for Vercel Hobby
+      const challengeTimeout = this.isVercel ? 3000 : 18000; // 3s max for Vercel
       
       // Multiple indicators to wait for challenge completion
       const challengeComplete = await Promise.race([
@@ -396,8 +403,9 @@ class AdvancedScraperFixed {
       
       console.log(`Cloudflare challenge completed via ${challengeComplete}`);
       
-      // Additional wait for page to stabilize
-      await this.randomDelay(2000, 4000);
+      // Shorter stabilization wait for Vercel
+      const stabilizeDelay = this.isVercel ? 500 : 2000;
+      await this.randomDelay(stabilizeDelay, stabilizeDelay + 1000);
       
       return true;
       
@@ -436,17 +444,17 @@ class AdvancedScraperFixed {
    */
   async extractContent(selectors, options = {}) {
     const {
-      waitForContent = true,
-      maxRetries = this.isVercel ? 2 : 3,
-      retryDelay = this.isVercel ? 1500 : 2000
+      waitForContent = this.isVercel ? false : true, // Skip heavy waiting on Vercel
+      maxRetries = this.isVercel ? 1 : 3, // Single retry for Vercel
+      retryDelay = this.isVercel ? 800 : 2000 // Fast retries
     } = options;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`Content extraction attempt ${attempt}/${maxRetries}`);
 
-        if (waitForContent && attempt === 1) {
-          // Wait for dynamic content to load (only on first attempt)
+        if (waitForContent && attempt === 1 && !this.isVercel) {
+          // Skip dynamic content wait on Vercel - too slow
           await this.waitForDynamicContent();
         }
 
@@ -463,10 +471,11 @@ class AdvancedScraperFixed {
           }
         }
 
-        // If no content found, wait and retry
+        // If no content found, wait and retry - shorter delays for Vercel
         if (attempt < maxRetries) {
           console.log('No content found, retrying...');
-          await this.randomDelay(retryDelay, retryDelay + 500);
+          const actualDelay = this.isVercel ? 500 : retryDelay;
+          await this.randomDelay(actualDelay, actualDelay + 200);
         }
 
       } catch (error) {
@@ -532,82 +541,88 @@ class AdvancedScraperFixed {
   }
 
   /**
-   * Wait for ECA React component to load news content
-   * Specifically waits for SharePoint NewsPageWebPart to render
+   * Wait for ECA React component to load news content - Vercel Optimized
+   * Aggressive parallel detection for maximum speed within 10s limit
    */
   async waitForECAReactContent() {
     try {
-      console.log('ECA: Waiting for React component to load news content...');
+      console.log('ECA: Starting aggressive React content detection...');
       
-      const reactTimeout = this.isVercel ? 15000 : 20000;
+      // Ultra-fast timeout for Vercel Hobby
+      const reactTimeout = this.isVercel ? 3000 : 20000; // 3 seconds max
       
-      // First, wait for the React root element to appear
-      await this.page.waitForSelector('section.news[data-reactroot]', { 
-        timeout: reactTimeout / 2,
-        visible: true 
-      });
-      
-      console.log('ECA: React root found, waiting for news list...');
-      
-      // Then wait for the news list to populate with items
-      const newsLoaded = await Promise.race([
-        // Strategy 1: Wait for news list with items
-        this.page.waitForFunction(
-          () => {
-            const newsList = document.querySelector('ul.news-list');
-            const newsItems = document.querySelectorAll('ul.news-list li .card.card-news');
-            return newsList && newsItems.length > 0;
-          },
-          { timeout: reactTimeout }
-        ).then(() => 'news-loaded'),
-        
-        // Strategy 2: Wait for cards with content
-        this.page.waitForFunction(
-          () => {
-            const cards = document.querySelectorAll('.card.card-news');
-            const cardsWithTitles = Array.from(cards).filter(card => {
-              const title = card.querySelector('h5.card-title');
-              return title && title.textContent.trim().length > 5;
-            });
-            return cardsWithTitles.length > 0;
-          },
-          { timeout: reactTimeout }
-        ).then(() => 'cards-loaded'),
-        
-        // Strategy 3: Wait for specific content patterns
-        this.page.waitForFunction(
-          () => {
-            const content = document.body.textContent;
-            return content.includes('ECA Journal') || content.includes('Newsletter') || content.includes('Special Report');
-          },
-          { timeout: reactTimeout }
-        ).then(() => 'content-loaded'),
-        
-        // Timeout fallback
-        new Promise(resolve => setTimeout(() => resolve('timeout'), reactTimeout))
-      ]);
-      
-      if (newsLoaded === 'timeout') {
-        console.warn('ECA: React content loading timed out, proceeding with available content');
-      } else {
-        console.log(`ECA: React content loaded successfully via ${newsLoaded}`);
+      // Skip React root waiting on Vercel - too slow
+      if (!this.isVercel) {
+        await this.page.waitForSelector('section.news[data-reactroot]', { 
+          timeout: reactTimeout / 2,
+          visible: true 
+        });
+        console.log('ECA: React root found, waiting for news list...');
       }
       
-      // Additional wait for content to stabilize
-      await this.randomDelay(2000, 3000);
+      // Aggressive parallel detection - all strategies run simultaneously
+      const newsLoaded = await Promise.race([
+        // Strategy 1: Direct content check - fastest
+        this.page.waitForFunction(
+          () => document.querySelectorAll('.card.card-news h5.card-title').length > 0,
+          { timeout: reactTimeout, polling: 100 } // Fast polling
+        ).then(() => 'titles-found'),
+        
+        // Strategy 2: News list check
+        this.page.waitForFunction(
+          () => document.querySelectorAll('ul.news-list li').length > 5,
+          { timeout: reactTimeout, polling: 100 }
+        ).then(() => 'list-populated'),
+        
+        // Strategy 3: Any news card
+        this.page.waitForFunction(
+          () => document.querySelectorAll('.card-news').length > 0,
+          { timeout: reactTimeout, polling: 100 }
+        ).then(() => 'cards-found'),
+        
+        // Strategy 4: Text content check
+        this.page.waitForFunction(
+          () => {
+            const text = document.body.textContent;
+            return text.includes('Journal') || text.includes('Newsletter') || text.includes('Report');
+          },
+          { timeout: reactTimeout, polling: 200 }
+        ).then(() => 'content-found'),
+        
+        // Strategy 5: Immediate fallback for speed
+        new Promise(resolve => {
+          setTimeout(() => {
+            // Check if ANY content exists right now
+            this.page.evaluate(() => {
+              return document.querySelectorAll('.card, .news, li').length;
+            }).then(count => {
+              resolve(count > 10 ? 'fallback-content' : 'timeout');
+            }).catch(() => resolve('timeout'));
+          }, this.isVercel ? 1500 : reactTimeout); // 1.5s quick fallback for Vercel
+        })
+      ]);
       
-      // Check if we have news items
+      console.log(`ECA: Detection completed via ${newsLoaded} (${this.isVercel ? 'Vercel mode' : 'Local mode'})`);
+      
+      // Skip stabilization wait on Vercel
+      if (!this.isVercel) {
+        await this.randomDelay(1000, 2000);
+      }
+      
+      // Quick count check
       const itemCount = await this.page.evaluate(() => {
-        return document.querySelectorAll('ul.news-list li .card.card-news').length;
+        const cards = document.querySelectorAll('.card.card-news, .card-news, ul.news-list li');
+        return cards.length;
       });
       
-      console.log(`ECA: Found ${itemCount} news items after React loading`);
+      console.log(`ECA: Found ${itemCount} content items`);
       
-      return itemCount > 0;
+      return itemCount > 0 || newsLoaded !== 'timeout';
       
     } catch (error) {
-      console.warn('ECA: React content wait failed:', error.message);
-      return false;
+      console.warn('ECA: React content detection failed:', error.message);
+      // Even on error, try to proceed - might have some content
+      return true;
     }
   }
 

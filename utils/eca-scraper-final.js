@@ -38,32 +38,35 @@ async function scrapeECANews() {
       throw new Error('Failed to initialize browser for ECA scraping');
     }
 
-    // Navigate to ECA news page with React component loading support
+    // Navigate to ECA news page - optimized for Vercel speed
     await scraper.navigateWithStealth(
       'https://www.eca.europa.eu/en/all-news',
       {
-        waitForSelector: 'section.news[data-reactroot], ul.news-list',
-        timeout: 45000,
-        waitForNetworkIdle: true
+        waitForSelector: '.card-news, ul.news-list, .card', // Broader selector for speed
+        timeout: 8000, // 8s max for navigation
+        waitForNetworkIdle: false // Skip network idle for speed
       }
     );
 
-    // Wait specifically for React component to load news content
-    await scraper.waitForECAReactContent();
+    // Wait specifically for React component - ultra-fast detection
+    const reactSuccess = await scraper.waitForECAReactContent();
+    console.log(`ECA: React detection result: ${reactSuccess}`);
 
-    // Extract content using the React-rendered structure
+    // Aggressive content extraction with multiple fallback selectors
     const contentSelectors = [
-      'ul.news-list li .card.card-news', // Primary target - React rendered news cards
-      'section.news ul.news-list .card-news', // Alternative with section context
-      '.card.card-news', // Fallback if structure changes
-      '[data-reactroot] .news-list .card', // Generic React content
-      '.news-list li', // Most generic selector
+      '.card.card-news h5.card-title', // Direct title selector - fastest
+      '.card-news', // Any news card
+      'ul.news-list li', // List items
+      '.card', // Any card
+      '[class*="card"]', // Partial class match
+      'h5.card-title', // Just titles
+      'li', // Ultimate fallback - any list item
     ];
 
     const result = await scraper.extractContent(contentSelectors, {
-      waitForContent: true,
-      maxRetries: 3,
-      retryDelay: 3000
+      waitForContent: false, // Skip heavy waiting
+      maxRetries: 1, // Single retry for speed
+      retryDelay: 500 // Fast retry
     });
 
     console.log(`ECA: Successfully extracted React content with selector: ${result.selector}`);
@@ -116,30 +119,55 @@ function parseECAHTML(html) {
   const items = [];
   const baseUrl = 'https://www.eca.europa.eu';
 
-  // Multiple selector strategies based on HTML analysis
+  // Aggressive selector strategies - try everything
   let newsItems = $('ul.news-list li .card.card-news');
-  if (newsItems.length === 0) {
-    newsItems = $('.card.card-news');
-  }
-  if (newsItems.length === 0) {
-    newsItems = $('ul.row.news-list li');
-  }
+  if (newsItems.length === 0) newsItems = $('.card.card-news');
+  if (newsItems.length === 0) newsItems = $('.card-news');
+  if (newsItems.length === 0) newsItems = $('ul.news-list li');
+  if (newsItems.length === 0) newsItems = $('ul.row.news-list li');
+  if (newsItems.length === 0) newsItems = $('.card');
+  if (newsItems.length === 0) newsItems = $('li').filter((i, el) => $(el).find('a[href*="/news/"]').length > 0);
+  if (newsItems.length === 0) newsItems = $('a[href*="/news/"]').parent().parent(); // Go up to container
   
-  console.log(`ECA: Found ${newsItems.length} news cards in HTML`);
+  console.log(`ECA: Found ${newsItems.length} items using fallback selectors`);
 
   newsItems.each((index, element) => {
     try {
       const $item = $(element);
       
-      // Extract title from <h5 class="card-title"> inside <a class="stretched-link">
-      const $link = $item.find('a.stretched-link').first();
-      const title = $link.find('h5.card-title').text().trim() || $item.find('h5.card-title').text().trim();
+      // Flexible title extraction - try multiple approaches
+      let title = '';
+      let $link = $item.find('a.stretched-link').first();
       
-      if (!title || title.length < 5) {
+      // Strategy 1: Standard structure
+      if ($link.length > 0) {
+        title = $link.find('h5.card-title').text().trim() || $link.text().trim();
+      }
+      
+      // Strategy 2: Direct title search
+      if (!title) {
+        title = $item.find('h5.card-title, h4, h3, h2, .card-title').first().text().trim();
+        $link = $item.find('a').first(); // Any link
+      }
+      
+      // Strategy 3: Link with title
+      if (!title) {
+        $link = $item.find('a[href*="/news/"]').first();
+        title = $link.text().trim();
+      }
+      
+      // Strategy 4: Most desperate - any text in a link
+      if (!title) {
+        $link = $item.find('a').first();
+        title = $link.text().trim();
+      }
+      
+      if (!title || title.length < 3) {
+        console.warn(`ECA: Item ${index + 1} has no usable title`);
         return; // Skip items without meaningful titles
       }
       
-      // Extract link from <a class="stretched-link">
+      // Extract link URL
       const href = $link.attr('href');
       
       if (!href) {
@@ -148,8 +176,15 @@ function parseECAHTML(html) {
       
       const link = href.startsWith('http') ? href : baseUrl + href;
       
-      // Extract date from <time class="card-date">DD/MM/YYYY</time>
-      const dateText = $item.find('time.card-date').text().trim();
+      // Flexible date extraction from multiple sources
+      let dateText = $item.find('time.card-date, time, .date, .card-date').first().text().trim();
+      if (!dateText) {
+        // Try to find date in surrounding text
+        const itemText = $item.text();
+        const dateMatch = itemText.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+        dateText = dateMatch ? dateMatch[1] : '';
+      }
+      
       let pubDate = null;
       
       if (dateText && dateText.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
@@ -171,8 +206,15 @@ function parseECAHTML(html) {
         pubDate = new Date().toUTCString();
       }
       
-      // Extract description from <p> tag in card-body
-      const description = $item.find('.card-body p').first().text().trim() || $item.find('p').first().text().trim();
+      // Flexible description extraction
+      let description = $item.find('.card-body p').first().text().trim();
+      if (!description) description = $item.find('p').first().text().trim();
+      if (!description) description = $item.find('.card-text, .excerpt, .summary').first().text().trim();
+      if (!description) {
+        // Use any text content that's not the title
+        const allText = $item.text().replace(title, '').trim();
+        description = allText.length > 20 ? allText.substring(0, 300) : title;
+      }
       
       // Extract image from <img class="card-img-top">
       const image = $item.find('img.card-img-top').attr('src');
