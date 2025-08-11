@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title><![CDATA[ECA News - European Court of Auditors]]></title>
+    <description><![CDATA[Latest news, reports, and publications from the European Court of Auditors]]></description>
+    <link>https://www.eca.europa.eu/en/all-news</link>
+    <language>en</language>
+    <generator>EU RSS Generator - ECA Scraper</generator>
+    <lastBuildDate>Mon, 11 Aug 2025 17:46:42 GMT</lastBuildDate>
+    <atom:link href="https://www.eca.europa.eu/en/all-news" rel="self" type="application/rss+xml" />
+    <item>
+      <title><![CDATA[ECA News Feed - Dynamic Content Loading Issue]]></title>
+      <description><![CDATA[The ECA news feed uses SharePoint dynamic content that requires JavaScript. Please visit the website directly for the latest news from the European Court of Auditors.]]></description>
+      <link>https://www.eca.europa.eu/en/all-news</link>
+      <pubDate>Mon, 11 Aug 2025 17:46:42 GMT</pubDate>
+      <category><![CDATA[ECA News]]></category>
+      
+      <guid isPermaLink="true">https://www.eca.europa.eu/en/all-news</guid>
+    </item>
+  </channel>
+</rss>

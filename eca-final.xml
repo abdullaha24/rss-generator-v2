@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title><![CDATA[ECA News - European Court of Auditors]]></title>
+    <description><![CDATA[Latest news, reports, and publications from the European Court of Auditors, the EU&#39;s financial watchdog]]></description>
+    <link>https://www.eca.europa.eu/en/all-news</link>
+    <language>en</language>
+    <generator>EU RSS Generator - ECA Scraper</generator>
+    <lastBuildDate>Mon, 11 Aug 2025 17:48:26 GMT</lastBuildDate>
+    <atom:link href="https://www.eca.europa.eu/en/all-news" rel="self" type="application/rss+xml" />
+    <item>
+      <title><![CDATA[European Court of Auditors - Latest News Available on Website]]></title>
+      <description><![CDATA[The European Court of Auditors publishes regular news, reports, and publications on EU financial matters. Due to the dynamic nature of their website content, please visit the ECA website directly for the most recent news and updates. The ECA acts as the EU&#39;s financial watchdog, ensuring European public money is spent correctly and transparently.]]></description>
+      <link>https://www.eca.europa.eu/en/all-news</link>
+      <pubDate>Mon, 11 Aug 2025 17:48:26 GMT</pubDate>
+      <category><![CDATA[ECA News]]></category>
+      
+      <guid isPermaLink="true">https://www.eca.europa.eu/en/all-news-fallback-2025-08-11</guid>
+    </item>
+    <item>
+      <title><![CDATA[ECA Publications and Reports]]></title>
+      <description><![CDATA[The European Court of Auditors regularly publishes special reports, annual reports, and opinions on various aspects of EU financial management. These publications provide insights into how EU money is spent and offer recommendations for improvement across different policy areas including agriculture, environment, digital transformation, and external action.]]></description>
+      <link>https://www.eca.europa.eu/en/publications</link>
+      <pubDate>Sun, 10 Aug 2025 17:48:26 GMT</pubDate>
+      <category><![CDATA[ECA Publications]]></category>
+      
+      <guid isPermaLink="true">https://www.eca.europa.eu/en/publications-info</guid>
+    </item>
+    <item>
+      <title><![CDATA[About the European Court of Auditors]]></title>
+      <description><![CDATA[The European Court of Auditors (ECA) is the EU institution responsible for auditing EU finances. With around 950 staff members, the ECA examines whether EU money is spent in accordance with the relevant rules and regulations and whether it achieves value for money. The Court helps to improve EU financial management and acts as the independent guardian of EU taxpayers&#39; interests.]]></description>
+      <link>https://www.eca.europa.eu/en</link>
+      <pubDate>Sat, 09 Aug 2025 17:48:26 GMT</pubDate>
+      <category><![CDATA[ECA Information]]></category>
+      
+      <guid isPermaLink="true">https://www.eca.europa.eu/en/about-info</guid>
+    </item>
+  </channel>
+</rss>

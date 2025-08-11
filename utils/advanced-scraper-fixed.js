@@ -532,6 +532,86 @@ class AdvancedScraperFixed {
   }
 
   /**
+   * Wait for ECA React component to load news content
+   * Specifically waits for SharePoint NewsPageWebPart to render
+   */
+  async waitForECAReactContent() {
+    try {
+      console.log('ECA: Waiting for React component to load news content...');
+      
+      const reactTimeout = this.isVercel ? 15000 : 20000;
+      
+      // First, wait for the React root element to appear
+      await this.page.waitForSelector('section.news[data-reactroot]', { 
+        timeout: reactTimeout / 2,
+        visible: true 
+      });
+      
+      console.log('ECA: React root found, waiting for news list...');
+      
+      // Then wait for the news list to populate with items
+      const newsLoaded = await Promise.race([
+        // Strategy 1: Wait for news list with items
+        this.page.waitForFunction(
+          () => {
+            const newsList = document.querySelector('ul.news-list');
+            const newsItems = document.querySelectorAll('ul.news-list li .card.card-news');
+            return newsList && newsItems.length > 0;
+          },
+          { timeout: reactTimeout }
+        ).then(() => 'news-loaded'),
+        
+        // Strategy 2: Wait for cards with content
+        this.page.waitForFunction(
+          () => {
+            const cards = document.querySelectorAll('.card.card-news');
+            const cardsWithTitles = Array.from(cards).filter(card => {
+              const title = card.querySelector('h5.card-title');
+              return title && title.textContent.trim().length > 5;
+            });
+            return cardsWithTitles.length > 0;
+          },
+          { timeout: reactTimeout }
+        ).then(() => 'cards-loaded'),
+        
+        // Strategy 3: Wait for specific content patterns
+        this.page.waitForFunction(
+          () => {
+            const content = document.body.textContent;
+            return content.includes('ECA Journal') || content.includes('Newsletter') || content.includes('Special Report');
+          },
+          { timeout: reactTimeout }
+        ).then(() => 'content-loaded'),
+        
+        // Timeout fallback
+        new Promise(resolve => setTimeout(() => resolve('timeout'), reactTimeout))
+      ]);
+      
+      if (newsLoaded === 'timeout') {
+        console.warn('ECA: React content loading timed out, proceeding with available content');
+      } else {
+        console.log(`ECA: React content loaded successfully via ${newsLoaded}`);
+      }
+      
+      // Additional wait for content to stabilize
+      await this.randomDelay(2000, 3000);
+      
+      // Check if we have news items
+      const itemCount = await this.page.evaluate(() => {
+        return document.querySelectorAll('ul.news-list li .card.card-news').length;
+      });
+      
+      console.log(`ECA: Found ${itemCount} news items after React loading`);
+      
+      return itemCount > 0;
+      
+    } catch (error) {
+      console.warn('ECA: React content wait failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
    * Clean up resources with error handling
    */
   async cleanup() {
