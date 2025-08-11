@@ -71,13 +71,15 @@ async function scrapeConsiliumAdvanced() {
 
     console.log(`EU Council: Successfully parsed ${items.length} press release items`);
 
-    // Enrich items with full content from individual pages
-    const enrichedItems = await enrichConsiliumItems(items.slice(0, 15), scraper);
+    // Return items without enrichment to avoid timeout issues
+    // Individual page enrichment causes 403 errors and exceeds 60-second Vercel limit
+    const finalItems = items.slice(0, 20);
+    console.log(`EU Council: Returning ${finalItems.length} items without enrichment for optimal performance`);
     
     // Cache successful results
-    cache.set(cacheKey, enrichedItems);
+    cache.set(cacheKey, finalItems);
     
-    return enrichedItems;
+    return finalItems;
 
   } catch (error) {
     console.error('Advanced EU Council scraping error:', error.message);
@@ -273,10 +275,10 @@ async function enrichConsiliumItems(items, scraper) {
 function getConsiliumAdvancedChannelInfo() {
   return {
     title: 'EU Council Press Releases',
-    description: 'Latest press releases from the Council of the European Union (Real-time extraction)',
+    description: 'Latest press releases from the Council of the European Union (Fast extraction without enrichment)',
     link: 'https://www.consilium.europa.eu/en/press/press-releases/',
     language: 'en',
-    generator: 'EU RSS Generator - Advanced Scraper'
+    generator: 'EU RSS Generator - Fast Scraper'
   };
 }
 
