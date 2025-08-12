@@ -18,7 +18,7 @@ import { cleanDescription, formatRSSDate } from './rss-builder.js';
  * Strategy 1: Direct API access with SharePoint authentication
  */
 async function scrapeECANewsAPI() {
-  const cacheKey = 'eca-news-api-v3'; // Cache busting: Force fresh data
+  const cacheKey = 'eca-news-api-v4'; // Fixed URLs - force fresh data
   let scraper = null;
 
   try {
@@ -233,19 +233,19 @@ function extractTitle(newsItem) {
   // Based on actual API structure: {Id, ImageUrl, IsHtml, StartDate, Title}
   let title = newsItem.Title || '';
   
-  // Clean up technical titles like "NEWS-JOURNAL-2025-01"
+  // SIMPLIFIED: Keep titles closer to original for now, just basic cleanup
   if (title) {
-    // Convert technical formats to readable titles
-    title = title.replace(/NEWS-JOURNAL-(\d{4})-(\d{2})/, 'ECA Journal $1-$2');
-    title = title.replace(/NEWS(\d{4})_(\d{2})_NEWSLETTER_(\d{2})/, 'ECA Newsletter $1-$2-$3');
-    title = title.replace(/NEWS-/, '');
+    // Convert underscores to spaces and basic capitalization
     title = title.replace(/_/g, ' ');
-    title = title.replace(/-/g, ' ');
+    title = title.replace(/NEWS-?/gi, '');
     
-    // Capitalize properly
+    // Basic title case conversion
     title = title.split(' ')
                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                  .join(' ');
+    
+    // Clean up extra spaces
+    title = title.replace(/\s+/g, ' ').trim();
   }
   
   return title;
@@ -255,35 +255,16 @@ function extractTitle(newsItem) {
  * Extract and construct full URL from API response
  */
 function extractLink(newsItem, baseUrl) {
-  // Based on API structure, construct URL from Id and Title
-  const id = newsItem.Id;
+  // Based on API structure, construct URL from Title
   const title = newsItem.Title;
   
-  if (!id || !title) {
+  if (!title) {
     return '';
   }
 
-  // For HTML news items, construct the URL pattern
-  if (newsItem.IsHtml) {
-    // Pattern appears to be: /en/news/[title-based-slug]
-    const slug = title.toLowerCase()
-                      .replace(/news-?/gi, '')
-                      .replace(/[^a-z0-9]/g, '-')
-                      .replace(/-+/g, '-')
-                      .replace(/^-|-$/g, '');
-    
-    // Try different URL patterns based on title type
-    if (title.includes('JOURNAL')) {
-      return `${baseUrl}/en/journal/${slug}`;
-    } else if (title.includes('NEWSLETTER')) {
-      return `${baseUrl}/en/newsletters/${slug}`;
-    } else {
-      return `${baseUrl}/en/news/${slug}`;
-    }
-  }
-  
-  // Fallback to news section with ID
-  return `${baseUrl}/en/news/${id}`;
+  // FIXED: All items go to /en/news/[EXACT-TITLE] as shown in webpage
+  // The webpage shows ALL items use /en/news/ regardless of type
+  return `${baseUrl}/en/news/${title}`;
 }
 
 /**

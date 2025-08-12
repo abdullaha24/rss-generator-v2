@@ -1,0 +1,72 @@
+[
+  {
+    "Id": "106204",
+    "ImageUrl": "/ECAHTMLNews/NEWS-JOURNAL-2025-01/NEWS.png",
+    "IsHtml": true,
+    "StartDate": "/Date(1751270400000+0200)/",
+    "Title": "NEWS-JOURNAL-2025-01"
+  },
+  {
+    "Id": "106058",
+    "ImageUrl": "/ECAHTMLNews/NEWS2025_07_NEWSLETTER_02/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1751269500000+0200)/",
+    "Title": "NEWS2025_07_NEWSLETTER_02"
+  },
+  {
+    "Id": "105983",
+    "ImageUrl": "/ECAHTMLNews/NEWS2025_07_NEWSLETTER_03/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1751022000000+0200)/",
+    "Title": "NEWS2025_07_NEWSLETTER_03"
+  },
+  {
+    "Id": "105953",
+    "ImageUrl": "/ECAHTMLNews/NEWS2025_07_NEWSLETTER_01/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1751013000000+0200)/",
+    "Title": "NEWS2025_07_NEWSLETTER_01"
+  },
+  {
+    "Id": "210093",
+    "ImageUrl": "/ECAHTMLNews/NEWS-RV-2025-04/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1750345200000+0200)/",
+    "Title": "NEWS-RV-2025-04"
+  },
+  {
+    "Id": "97539",
+    "ImageUrl": "/ECAHTMLNews/NEWS-SR-2025-15/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1750258800000+0200)/",
+    "Title": "NEWS-SR-2025-15"
+  },
+  {
+    "Id": "209335",
+    "ImageUrl": "/ECAHTMLNews/NEWS-RV-2025-03/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1750086000000+0200)/",
+    "Title": "news-rv-2025-03"
+  },
+  {
+    "Id": "234",
+    "ImageUrl": "/ECAHTMLNews/NEWS-SR-2025-16/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1749654000000+0200)/",
+    "Title": "NEWS-SR-2025-16"
+  },
+  {
+    "Id": "92739",
+    "ImageUrl": "/ECAHTMLNews/NEWS2025_06_NEWSLETTER_03/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1748678400000+0200)/",
+    "Title": "NEWS2025_06_NEWSLETTER_03"
+  },
+  {
+    "Id": "92737",
+    "ImageUrl": "/ECAHTMLNews/NEWS2025_06_NEWSLETTER_02/NEWS.jpg",
+    "IsHtml": true,
+    "StartDate": "/Date(1748592000000+0200)/",
+    "Title": "NEWS2025_06_NEWSLETTER_02"
+  }
+]
