@@ -112,76 +112,50 @@ async function scrapeECJNews() {
           title = `Press Release ${pressMatch[0]}`;
         }
         
-        // Extract professional summary from webpage content
-        // Based on debug findings, the summaries appear in specific patterns
-        const cleanText = text.replace(/\s+/g, ' ').trim();
+        // Extract professional summary from specific CSS classes
+        // Target: <div class="cp_domain"> and <div class="cp_summary">
         let summary = '';
         
-        // Strategy 1: Look for summaries that contain colons (like "Football: the Court affirms...")
-        const colonMatches = cleanText.match(/([A-Z][^:]*:[^.]*\.?)/g);
-        if (colonMatches && colonMatches.length > 0) {
-          for (const match of colonMatches) {
-            const cleanMatch = match.replace(/\s+/g, ' ').trim();
-            // Filter out language codes and navigation text
-            if (cleanMatch.length > 40 && 
-                !cleanMatch.match(/^(bg|es|cs|da|de|et|el|en|fr|hr|ga|it|lv|lt|hu|mt|nl|pl|pt|ro|sk|sl|fi|sv):/i) &&
-                !cleanMatch.includes('bg es cs da de') &&
-                (cleanMatch.includes('Court') || cleanMatch.includes('law') || cleanMatch.includes('EU') || 
-                 cleanMatch.includes('right') || cleanMatch.includes('principle'))) {
-              summary = cleanMatch;
-              if (!summary.endsWith('.')) summary += '.';
-              break;
-            }
-          }
-        }
+        // Look for cp_domain and cp_summary classes within this element
+        const domainElement = element.querySelector('.cp_domain');
+        const summaryElement = element.querySelector('.cp_summary');
         
-        // Strategy 2: Look for descriptive phrases after category labels
-        if (!summary) {
-          // Look for patterns like "Area of Freedom, Security and Justice" followed by description
-          const categoryPatterns = [
-            /Area of Freedom[^:]*:\s*([^.]+\.?)/,
-            /Principles of Community law[^:]*:\s*([^.]+\.?)/,
-            /Approximation of laws[^:]*:\s*([^.]+\.?)/,
-            /Taxation[^:]*:\s*([^.]+\.?)/,
-            /Free movement[^:]*:\s*([^.]+\.?)/
-          ];
+        if (domainElement && summaryElement) {
+          const domainText = domainElement.textContent?.trim() || '';
+          const summaryText = summaryElement.textContent?.trim() || '';
           
-          for (const pattern of categoryPatterns) {
-            const match = cleanText.match(pattern);
-            if (match && match[1]) {
-              const desc = match[1].trim();
-              if (desc.length > 30) {
-                summary = desc;
-                if (!summary.endsWith('.')) summary += '.';
-                break;
-              }
-            }
+          if (domainText && summaryText) {
+            // Combine with line break (will be properly encoded in CDATA)
+            summary = `${domainText}
+${summaryText}`;
+          } else if (summaryText) {
+            // Use just summary if domain is empty
+            summary = summaryText;
+          } else if (domainText) {
+            // Use just domain if summary is empty  
+            summary = domainText;
           }
         }
         
-        // Strategy 3: Look for any substantial descriptive sentence
-        if (!summary) {
-          // Split by periods and look for meaningful descriptions
-          const sentences = cleanText.split(/\.\s+/);
-          for (const sentence of sentences) {
-            const cleanSentence = sentence.replace(/\s+/g, ' ').trim();
+        // Fallback: Look in parent elements for cp_domain/cp_summary
+        if (!summary && element.parentElement) {
+          const parentDomain = element.parentElement.querySelector('.cp_domain');
+          const parentSummary = element.parentElement.querySelector('.cp_summary');
+          
+          if (parentDomain && parentSummary) {
+            const domainText = parentDomain.textContent?.trim() || '';
+            const summaryText = parentSummary.textContent?.trim() || '';
             
-            // Look for sentences that describe legal principles or rulings
-            if (cleanSentence.length > 50 && 
-                !cleanSentence.match(/^\s*(No\s+\d+|page|link|click|\d{1,2}\s+\w+\s+\d{4})/i) &&
-                !cleanSentence.includes('bg es cs da de et el en fr ga hr it lv lt hu mt nl pl pt ro sk sl fi sv') &&
-                (cleanSentence.includes('Court') || cleanSentence.includes('Member State') || 
-                 cleanSentence.includes('cannot') || cleanSentence.includes('must') ||
-                 cleanSentence.includes('law') || cleanSentence.includes('right'))) {
-              
-              summary = cleanSentence;
-              if (!summary.endsWith('.')) summary += '.';
-              break;
+            if (domainText && summaryText) {
+              summary = `${domainText}
+${summaryText}`;
+            } else if (summaryText) {
+              summary = summaryText;
             }
           }
         }
         
-        // Fallback: Professional generic description
+        // Ultimate fallback: Professional generic description (no regression)
         if (!summary) {
           summary = 'European Court of Justice judgment - full press release available.';
         }
