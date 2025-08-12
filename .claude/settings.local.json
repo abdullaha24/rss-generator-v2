@@ -14,7 +14,8 @@
       "Bash(grep:*)",
       "WebFetch(domain:curia.europa.eu)",
       "Bash(curl:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "WebFetch(domain:rss-generator-v2.vercel.app)"
     ],
     "deny": []
   }
