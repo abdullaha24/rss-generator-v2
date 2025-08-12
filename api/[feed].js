@@ -5,6 +5,7 @@
 
 import { generateRSSFeed } from '../utils/rss-builder.js';
 import { scrapeEEAS, getEEASChannelInfo } from '../utils/eeas-scraper.js';
+import { scrapeECJNews, getECJChannelInfo } from '../utils/ecj-scraper.js';
 import { scrapeNATO, getNATOChannelInfo } from '../utils/nato-scraper.js';
 import { scrapeConsiliumAdvanced, getConsiliumAdvancedChannelInfo } from '../utils/consilium-scraper-advanced.js';
 import { scrapeECANewsAPI, getECAChannelInfoAPI } from '../utils/eca-scraper-api.js';
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
         return await handleEEAS(req, res);
       
       case 'curia':
-        return await handleNotImplemented(req, res, 'European Court of Justice');
+        return await handleECJ(req, res);
       
       case 'europarl':
         return await handleNotImplemented(req, res, 'European Parliament Q&A');
@@ -102,6 +103,28 @@ async function handleNATO(req, res) {
     
   } catch (error) {
     console.error('NATO feed error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Handle ECJ (European Court of Justice) Press Releases feed
+ */
+async function handleECJ(req, res) {
+  try {
+    console.log('Processing ECJ Professional feed request');
+    
+    const items = await scrapeECJNews();
+    const channelInfo = getECJChannelInfo();
+    const rssXml = generateRSSFeed(channelInfo, items);
+    
+    res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+    
+    return res.status(200).send(rssXml);
+    
+  } catch (error) {
+    console.error('ECJ Professional feed error:', error);
     throw error;
   }
 }
