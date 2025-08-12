@@ -53,7 +53,7 @@ Client Workflow: Uses WP RSS Aggregator to automatically pull RSS feeds → crea
 
 ### 8. Council of Europe Newsroom
 
-- **URL**:
+- **URL**: https://www.coe.int/en/web/portal/newsroom
 - **Status**: No RSS
 - **Type**: Standard web scraping required
 

@@ -7,7 +7,7 @@ import { generateRSSFeed } from '../utils/rss-builder.js';
 import { scrapeEEAS, getEEASChannelInfo } from '../utils/eeas-scraper.js';
 import { scrapeNATO, getNATOChannelInfo } from '../utils/nato-scraper.js';
 import { scrapeConsiliumAdvanced, getConsiliumAdvancedChannelInfo } from '../utils/consilium-scraper-advanced.js';
-import { scrapeECANews, getECAChannelInfo } from '../utils/eca-scraper-final.js';
+import { scrapeECANewsAPI, getECAChannelInfoAPI } from '../utils/eca-scraper-api.js';
 import { scrapeCOENews, getCOEChannelInfo } from '../utils/coe-scraper.js';
 
 /**
@@ -134,8 +134,8 @@ async function handleECA(req, res) {
   try {
     console.log('Processing ECA feed request');
     
-    const items = await scrapeECANews();
-    const channelInfo = getECAChannelInfo();
+    const items = await scrapeECANewsAPI();
+    const channelInfo = getECAChannelInfoAPI();
     const rssXml = generateRSSFeed(channelInfo, items);
     
     res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
