@@ -9,6 +9,7 @@ import { scrapeNATO, getNATOChannelInfo } from '../utils/nato-scraper.js';
 import { scrapeConsiliumAdvanced, getConsiliumAdvancedChannelInfo } from '../utils/consilium-scraper-advanced.js';
 import { scrapeECANewsAPI, getECAChannelInfoAPI } from '../utils/eca-scraper-api.js';
 import { scrapeCOENews, getCOEChannelInfo } from '../utils/coe-scraper.js';
+import { cache } from '../utils/http-client.js';
 
 /**
  * Main API handler
@@ -134,6 +135,12 @@ async function handleECA(req, res) {
   try {
     console.log('Processing ECA feed request');
     
+    // Clear cache if requested via query parameter
+    if (req.query.clearCache === 'true') {
+      cache.clear();
+      console.log('🗑️ ECA API: Cache cleared manually');
+    }
+    
     const items = await scrapeECANewsAPI();
     console.log('✅ ECA API: Items scraped:', items.length);
     
@@ -143,11 +150,14 @@ async function handleECA(req, res) {
     const rssXml = generateRSSFeed(channelInfo, items);
     console.log('✅ ECA API: RSS generated, size:', rssXml.length);
     console.log('✅ ECA API: RSS preview (first 200 chars):', rssXml.substring(0, 200));
+    console.log('🚀 ECA API: Sending RSS response to client...');
     
     res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
     
-    return res.status(200).send(rssXml);
+    const result = res.status(200).send(rssXml);
+    console.log('✅ ECA API: Response sent successfully');
+    return result;
     
   } catch (error) {
     console.error('❌ ECA feed error:', error);

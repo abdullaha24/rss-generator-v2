@@ -18,7 +18,7 @@ import { cleanDescription, formatRSSDate } from './rss-builder.js';
  * Strategy 1: Direct API access with SharePoint authentication
  */
 async function scrapeECANewsAPI() {
-  const cacheKey = 'eca-news-api-v2';
+  const cacheKey = 'eca-news-api-v3'; // Cache busting: Force fresh data
   let scraper = null;
 
   try {
