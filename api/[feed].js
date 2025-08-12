@@ -135,8 +135,14 @@ async function handleECA(req, res) {
     console.log('Processing ECA feed request');
     
     const items = await scrapeECANewsAPI();
+    console.log('✅ ECA API: Items scraped:', items.length);
+    
     const channelInfo = getECAChannelInfoAPI();
+    console.log('✅ ECA API: Channel info prepared:', JSON.stringify(channelInfo, null, 2));
+    
     const rssXml = generateRSSFeed(channelInfo, items);
+    console.log('✅ ECA API: RSS generated, size:', rssXml.length);
+    console.log('✅ ECA API: RSS preview (first 200 chars):', rssXml.substring(0, 200));
     
     res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
@@ -144,7 +150,7 @@ async function handleECA(req, res) {
     return res.status(200).send(rssXml);
     
   } catch (error) {
-    console.error('ECA feed error:', error);
+    console.error('❌ ECA feed error:', error);
     throw error;
   }
 }
