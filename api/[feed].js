@@ -114,6 +114,12 @@ async function handleECJ(req, res) {
   try {
     console.log('Processing ECJ Professional feed request');
     
+    // Clear cache if requested via query parameter
+    if (req.query.clearCache === 'true') {
+      cache.clear();
+      console.log('🗑️ ECJ API: Cache cleared manually');
+    }
+    
     const items = await scrapeECJNews();
     const channelInfo = getECJChannelInfo();
     const rssXml = generateRSSFeed(channelInfo, items);
