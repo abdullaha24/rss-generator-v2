@@ -47,128 +47,102 @@ async function scrapeECJNews() {
       }
     );
 
-    // Step 2: Extract press release items with professional summaries
-    console.log('ECJ: Extracting press releases with webpage summaries...');
+    // Step 2: Extract press release items and summaries separately (they are in different DOM sections)
+    console.log('ECJ: Extracting press releases and summaries separately...');
     
     const pressReleases = await scraper.page.evaluate(() => {
-      const items = [];
+      // Step 2A: Extract all press release items (cp_item divs)
+      const pressItems = [];
+      const itemElements = document.querySelectorAll('.cp_item');
       
-      // Find all elements containing press release numbers
-      const allElements = [...document.querySelectorAll('*')];
-      const pressElements = allElements.filter(el => {
-        const text = el.textContent || '';
-        return text.match(/No\s+\d+\/\d{4}/) && text.length > 20 && text.length < 2000;
-      });
+      console.log(`Found ${itemElements.length} cp_item elements`);
       
-      console.log(`Found ${pressElements.length} elements with press release numbers`);
-      
-      pressElements.forEach((element, index) => {
+      itemElements.forEach((element, index) => {
         if (index >= 7) return; // Limit to 7 items as requested
         
-        const text = element.textContent || '';
+        const dateElement = element.querySelector('.cp_date');
+        const titleElement = element.querySelector('.cp_title a');
+        
+        if (!dateElement || !titleElement) return;
+        
+        const text = dateElement.textContent || '';
         const pressMatch = text.match(/No\s+(\d+)\/(\d{4})/);
         const dateMatch = text.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
         
         if (!pressMatch) return;
         
-        // Find all links within this element and nearby elements
-        let links = [];
+        const title = titleElement.textContent.trim();
+        const link = titleElement.href;
         
-        // Check the element itself
-        const elementLinks = element.querySelectorAll('a[href*="p1_"]');
-        links.push(...elementLinks);
-        
-        // Check parent element
-        let parent = element.parentElement;
-        if (parent) {
-          const parentLinks = parent.querySelectorAll('a[href*="p1_"]');
-          links.push(...parentLinks);
-        }
-        
-        // Find the best link (longest meaningful text, prefer "Judgment" titles)
-        let bestLink = null;
-        let bestScore = 0;
-        
-        links.forEach(link => {
-          const linkText = (link.textContent || '').trim();
-          const score = linkText.length;
-          
-          // Prefer links with "Judgment" in the text (these are the main titles)
-          if (linkText.includes('Judgment') && score > bestScore) {
-            bestLink = link;
-            bestScore = score;
-          } else if (!bestLink && score > 10 && !linkText.match(/^bg|^es|^de|^fr|^it$/i)) {
-            // Fallback to any meaningful link text (exclude language codes)
-            bestLink = link;
-            bestScore = score;
-          }
-        });
-        
-        // Extract title from the best link
-        let title = '';
-        if (bestLink) {
-          title = bestLink.textContent.trim();
-        } else {
-          title = `Press Release ${pressMatch[0]}`;
-        }
-        
-        // Extract professional summary from specific CSS classes
-        // Target: <div class="cp_domain"> and <div class="cp_summary">
-        let summary = '';
-        
-        // Look for cp_domain and cp_summary classes within this element
-        const domainElement = element.querySelector('.cp_domain');
-        const summaryElement = element.querySelector('.cp_summary');
-        
-        if (domainElement && summaryElement) {
-          const domainText = domainElement.textContent?.trim() || '';
-          const summaryText = summaryElement.textContent?.trim() || '';
-          
-          if (domainText && summaryText) {
-            // Combine with line break (will be properly encoded in CDATA)
-            summary = `${domainText}
-${summaryText}`;
-          } else if (summaryText) {
-            // Use just summary if domain is empty
-            summary = summaryText;
-          } else if (domainText) {
-            // Use just domain if summary is empty  
-            summary = domainText;
-          }
-        }
-        
-        // Fallback: Look in parent elements for cp_domain/cp_summary
-        if (!summary && element.parentElement) {
-          const parentDomain = element.parentElement.querySelector('.cp_domain');
-          const parentSummary = element.parentElement.querySelector('.cp_summary');
-          
-          if (parentDomain && parentSummary) {
-            const domainText = parentDomain.textContent?.trim() || '';
-            const summaryText = parentSummary.textContent?.trim() || '';
-            
-            if (domainText && summaryText) {
-              summary = `${domainText}
-${summaryText}`;
-            } else if (summaryText) {
-              summary = summaryText;
-            }
-          }
-        }
-        
-        // Ultimate fallback: Professional generic description (no regression)
-        if (!summary) {
-          summary = 'European Court of Justice judgment - full press release available.';
-        }
-        
-        items.push({
+        pressItems.push({
           title: title,
-          link: bestLink ? bestLink.href : '',
+          link: link,
           date: dateMatch ? dateMatch[0] : '',
-          summary: summary,
-          pressNumber: pressMatch[0]
+          pressNumber: pressMatch[0],
+          index: index
         });
       });
       
+      // Step 2B: Extract all summaries (cp_domain + cp_summary pairs)
+      const summaries = [];
+      const domainElements = document.querySelectorAll('.cp_domain');
+      
+      console.log(`Found ${domainElements.length} cp_domain elements`);
+      
+      // Process each domain and check if it has a direct cp_summary sibling
+      for (let i = 0; i < domainElements.length; i++) {
+        const domainElement = domainElements[i];
+        const domainText = domainElement.textContent?.trim() || '';
+        
+        if (!domainText) continue;
+        
+        // Check if the next sibling is a cp_summary
+        const nextSibling = domainElement.nextElementSibling;
+        
+        if (nextSibling && nextSibling.classList.contains('cp_summary')) {
+          // This domain has a direct summary following it
+          const summaryText = nextSibling.textContent?.trim() || '';
+          if (summaryText) {
+            summaries.push(`${domainText}: ${summaryText}`);
+          } else {
+            summaries.push(domainText);
+          }
+        } else {
+          // This domain stands alone (it contains the full description)
+          summaries.push(domainText);
+        }
+      }
+      
+      console.log(`Created ${summaries.length} professional summaries`);
+      
+      // Step 2C: Match press releases with summaries by order
+      const items = [];
+      for (let i = 0; i < pressItems.length && i < summaries.length; i++) {
+        const pressItem = pressItems[i];
+        const summary = summaries[i];
+        
+        items.push({
+          title: pressItem.title,
+          link: pressItem.link,
+          date: pressItem.date,
+          summary: summary,
+          pressNumber: pressItem.pressNumber
+        });
+      }
+      
+      // Handle any remaining press items without summaries
+      for (let i = summaries.length; i < pressItems.length; i++) {
+        const pressItem = pressItems[i];
+        items.push({
+          title: pressItem.title,
+          link: pressItem.link,
+          date: pressItem.date,
+          summary: 'European Court of Justice judgment - full press release available.',
+          pressNumber: pressItem.pressNumber
+        });
+      }
+      
+      console.log(`Matched ${items.length} press releases with their summaries`);
       return items;
     });
 
