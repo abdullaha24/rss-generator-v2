@@ -8,6 +8,7 @@ import { scrapeEEAS, getEEASChannelInfo } from '../utils/eeas-scraper.js';
 import { scrapeNATO, getNATOChannelInfo } from '../utils/nato-scraper.js';
 import { scrapeConsiliumAdvanced, getConsiliumAdvancedChannelInfo } from '../utils/consilium-scraper-advanced.js';
 import { scrapeECANews, getECAChannelInfo } from '../utils/eca-scraper-final.js';
+import { scrapeCOENews, getCOEChannelInfo } from '../utils/coe-scraper.js';
 
 /**
  * Main API handler
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
         return await handleNotImplemented(req, res, 'Europol News');
       
       case 'coe':
-        return await handleNotImplemented(req, res, 'Council of Europe');
+        return await handleCOE(req, res);
       
       case 'nato':
         return await handleNATO(req, res);
@@ -144,6 +145,28 @@ async function handleECA(req, res) {
     
   } catch (error) {
     console.error('ECA feed error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Handle COE (Council of Europe) Newsroom feed
+ */
+async function handleCOE(req, res) {
+  try {
+    console.log('Processing COE feed request');
+    
+    const items = await scrapeCOENews();
+    const channelInfo = getCOEChannelInfo();
+    const rssXml = generateRSSFeed(channelInfo, items);
+    
+    res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+    
+    return res.status(200).send(rssXml);
+    
+  } catch (error) {
+    console.error('COE feed error:', error);
     throw error;
   }
 }

@@ -38,11 +38,11 @@ async function scrapeECANews() {
       throw new Error('Failed to initialize browser for ECA scraping');
     }
 
-    // Navigate to ECA news page - optimized for Vercel speed
+    // Navigate to ECA news page - skip initial selector wait for speed
     await scraper.navigateWithStealth(
       'https://www.eca.europa.eu/en/all-news',
       {
-        waitForSelector: '.card-news, ul.news-list, .card', // Broader selector for speed
+        // Remove waitForSelector - rely on React detection instead
         timeout: 8000, // 8s max for navigation
         waitForNetworkIdle: false // Skip network idle for speed
       }
@@ -52,21 +52,20 @@ async function scrapeECANews() {
     const reactSuccess = await scraper.waitForECAReactContent();
     console.log(`ECA: React detection result: ${reactSuccess}`);
 
-    // Aggressive content extraction with multiple fallback selectors
+    // Ultra-fast content extraction - prioritize speed over perfection
     const contentSelectors = [
-      '.card.card-news h5.card-title', // Direct title selector - fastest
-      '.card-news', // Any news card
-      'ul.news-list li', // List items
-      '.card', // Any card
-      '[class*="card"]', // Partial class match
-      'h5.card-title', // Just titles
-      'li', // Ultimate fallback - any list item
+      'ul.news-list li', // Most likely to have complete items
+      '.card.card-news', // Primary news cards
+      '.card-news', // Any news card variant
+      '.card', // Any card container
+      'a[href*="/news/"]', // Direct news links
+      'h2, h3, h4, h5', // Any headers (likely news titles)
     ];
 
     const result = await scraper.extractContent(contentSelectors, {
-      waitForContent: false, // Skip heavy waiting
-      maxRetries: 1, // Single retry for speed
-      retryDelay: 500 // Fast retry
+      waitForContent: false, // Skip all waiting for speed
+      maxRetries: 1, // Single attempt only
+      retryDelay: 200 // Ultra-fast retry
     });
 
     console.log(`ECA: Successfully extracted React content with selector: ${result.selector}`);
@@ -119,15 +118,12 @@ function parseECAHTML(html) {
   const items = [];
   const baseUrl = 'https://www.eca.europa.eu';
 
-  // Aggressive selector strategies - try everything
-  let newsItems = $('ul.news-list li .card.card-news');
+  // Fast selector strategies - prioritize speed
+  let newsItems = $('ul.news-list li'); // Primary target
   if (newsItems.length === 0) newsItems = $('.card.card-news');
   if (newsItems.length === 0) newsItems = $('.card-news');
-  if (newsItems.length === 0) newsItems = $('ul.news-list li');
-  if (newsItems.length === 0) newsItems = $('ul.row.news-list li');
   if (newsItems.length === 0) newsItems = $('.card');
-  if (newsItems.length === 0) newsItems = $('li').filter((i, el) => $(el).find('a[href*="/news/"]').length > 0);
-  if (newsItems.length === 0) newsItems = $('a[href*="/news/"]').parent().parent(); // Go up to container
+  if (newsItems.length === 0) newsItems = $('a[href*="/news/"]').closest('li, div, article');
   
   console.log(`ECA: Found ${newsItems.length} items using fallback selectors`);
 

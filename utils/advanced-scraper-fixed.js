@@ -238,7 +238,9 @@ class AdvancedScraperFixed {
     const {
       waitForSelector = null,
       timeout = this.isVercel ? 8000 : 30000, // 8s max for Vercel Hobby
-      waitForNetworkIdle = this.isVercel ? false : true // Skip network idle on Vercel
+      waitForNetworkIdle = this.isVercel ? false : true, // Skip network idle on Vercel
+      useAlternativeUA = false, // Use mobile user agent for heavily protected sites
+      addReferer = null // Custom referer header
     } = options;
 
     // Optimized strategies for Vercel - prioritize speed
@@ -249,6 +251,7 @@ class AdvancedScraperFixed {
       { method: 'direct', waitUntil: 'networkidle2' },
       { method: 'direct', waitUntil: 'domcontentloaded' },
       { method: 'with_referer', waitUntil: 'networkidle0' },
+      { method: 'mobile', waitUntil: 'networkidle2' },
       { method: 'delayed', waitUntil: 'load' }
     ];
 
@@ -273,11 +276,24 @@ class AdvancedScraperFixed {
             'Sec-Fetch-User': '?1',
             'Upgrade-Insecure-Requests': '1',
             'DNT': '1',
-            'Referer': 'https://www.google.com/search?q=eu+council+press+releases',
+            'Referer': addReferer || 'https://www.google.com/search?q=eu+council+press+releases',
             'Connection': 'keep-alive'
           };
           await this.page.setExtraHTTPHeaders(currentHeaders);
           await this.randomDelay(1000, 2000);
+        }
+        
+        // Apply alternative user agent if requested
+        if (useAlternativeUA || strategy.method === 'mobile') {
+          const mobileUserAgents = [
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36'
+          ];
+          const mobileUA = mobileUserAgents[Math.floor(Math.random() * mobileUserAgents.length)];
+          console.log('Using mobile UA:', mobileUA.substring(0, 50) + '...');
+          await this.page.setUserAgent(mobileUA);
         } else {
           await this.randomDelay(500, 1500);
         }
@@ -560,45 +576,54 @@ class AdvancedScraperFixed {
         console.log('ECA: React root found, waiting for news list...');
       }
       
-      // Aggressive parallel detection - all strategies run simultaneously
+      // Ultra-aggressive parallel detection - optimized for speed and reliability
       const newsLoaded = await Promise.race([
-        // Strategy 1: Direct content check - fastest
+        // Strategy 1: Direct content check - fastest and most reliable
         this.page.waitForFunction(
           () => document.querySelectorAll('.card.card-news h5.card-title').length > 0,
-          { timeout: reactTimeout, polling: 100 } // Fast polling
+          { timeout: reactTimeout, polling: 50 } // Ultra-fast polling
         ).then(() => 'titles-found'),
         
-        // Strategy 2: News list check
+        // Strategy 2: Any news cards present
         this.page.waitForFunction(
-          () => document.querySelectorAll('ul.news-list li').length > 5,
+          () => document.querySelectorAll('.card-news').length > 0,
+          { timeout: reactTimeout, polling: 50 }
+        ).then(() => 'cards-found'),
+        
+        // Strategy 3: News list populated (less strict requirement)
+        this.page.waitForFunction(
+          () => document.querySelectorAll('ul.news-list li').length > 2,
           { timeout: reactTimeout, polling: 100 }
         ).then(() => 'list-populated'),
         
-        // Strategy 3: Any news card
-        this.page.waitForFunction(
-          () => document.querySelectorAll('.card-news').length > 0,
-          { timeout: reactTimeout, polling: 100 }
-        ).then(() => 'cards-found'),
-        
-        // Strategy 4: Text content check
+        // Strategy 4: Any meaningful content indicators
         this.page.waitForFunction(
           () => {
+            // Check for ECA-specific content indicators
             const text = document.body.textContent;
-            return text.includes('Journal') || text.includes('Newsletter') || text.includes('Report');
+            return text.includes('Journal') || text.includes('Newsletter') || 
+                   text.includes('Report') || text.includes('ECA') ||
+                   document.querySelectorAll('[class*="card"]').length > 5;
           },
-          { timeout: reactTimeout, polling: 200 }
+          { timeout: reactTimeout, polling: 150 }
         ).then(() => 'content-found'),
         
-        // Strategy 5: Immediate fallback for speed
+        // Strategy 5: Quick success fallback - much faster on Vercel
         new Promise(resolve => {
-          setTimeout(() => {
-            // Check if ANY content exists right now
-            this.page.evaluate(() => {
-              return document.querySelectorAll('.card, .news, li').length;
-            }).then(count => {
-              resolve(count > 10 ? 'fallback-content' : 'timeout');
-            }).catch(() => resolve('timeout'));
-          }, this.isVercel ? 1500 : reactTimeout); // 1.5s quick fallback for Vercel
+          const quickCheck = this.isVercel ? 1000 : 2000; // 1s for Vercel, 2s for local
+          setTimeout(async () => {
+            try {
+              // Immediate content check without waiting
+              const count = await this.page.evaluate(() => {
+                const cards = document.querySelectorAll('.card, .news, li, [class*="card"]');
+                const links = document.querySelectorAll('a[href*="/news/"], a[href*="/report/"]');
+                return cards.length + links.length;
+              });
+              resolve(count > 8 ? 'quick-fallback-success' : 'quick-fallback-retry');
+            } catch (e) {
+              resolve('quick-fallback-error');
+            }
+          }, quickCheck);
         })
       ]);
       

@@ -9,7 +9,8 @@
       "Bash(node:*)",
       "WebFetch(domain:www.nato.int)",
       "WebFetch(domain:medium.com)",
-      "WebFetch(domain:www.eca.europa.eu)"
+      "WebFetch(domain:www.eca.europa.eu)",
+      "WebFetch(domain:www.coe.int)"
     ],
     "deny": []
   }
